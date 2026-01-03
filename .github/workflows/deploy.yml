@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - claude/idrefjall-3d-map-ODrZE
+      - main
+      - master
   workflow_dispatch:
 
 permissions:
