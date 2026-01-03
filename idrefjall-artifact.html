@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idrefjäll 3D Karta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            z-index: 100;
+        }
+
+        #info h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        #stats p {
+            margin: 8px 0;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        #stats strong {
+            color: #2c3e50;
+        }
+
+        #controls-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        #controls-info p {
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 200;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading p {
+            color: #2c3e50;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Idrefjäll 3D Karta</h1>
+        <div id="stats">
+            <p><strong>Höjd:</strong> <span id="elevation">590m - 890m</span></p>
+            <p><strong>Pister:</strong> 38 nedfarter</p>
+            <p><strong>Liftar:</strong> 33 liftar</p>
+            <p><strong>Koordinater:</strong> 61.89°N, 12.83°E</p>
+        </div>
+        <div id="controls-info">
+            <p><small>🖱️ Vänster musknapp: Rotera | Höger musknapp: Panorera | Scrollhjul: Zooma</small></p>
+        </div>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Laddar terrain data...</p>
+    </div>
+
+    <div id="container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Idrefjäll coordinates and configuration
+        const IDREFJALL = {
+            lat: 61.8902763,
+            lon: 12.8294831,
+            minElevation: 590,
+            maxElevation: 890,
+            name: 'Idrefjäll'
+        };
+
+        // Scene setup
+        let scene, camera, renderer, controls;
+        let terrain, skiRoutes = [];
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 1000, 4000);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                1,
+                5000
+            );
+            camera.position.set(500, 400, 500);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 100;
+            controls.maxDistance = 2000;
+            controls.maxPolarAngle = Math.PI / 2;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 500, 100);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -500;
+            directionalLight.shadow.camera.right = 500;
+            directionalLight.shadow.camera.top = 500;
+            directionalLight.shadow.camera.bottom = -500;
+            scene.add(directionalLight);
+
+            // Create terrain
+            createTerrain();
+
+            // Add ski resort features
+            addSkiLifts();
+            addSkiRoutes();
+            addTrees();
+            addLodges();
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Hide loading screen
+            document.getElementById('loading').classList.add('hidden');
+
+            // Start animation loop
+            animate();
+        }
+
+        function createTerrain() {
+            const width = 800;
+            const height = 800;
+            const widthSegments = 100;
+            const heightSegments = 100;
+
+            const geometry = new THREE.PlaneGeometry(
+                width,
+                height,
+                widthSegments,
+                heightSegments
+            );
+
+            // Generate mountainous terrain using noise functions
+            const vertices = geometry.attributes.position.array;
+
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const y = vertices[i + 1];
+
+                // Create mountain peaks and valleys
+                let z = 0;
+
+                // Main mountain shape
+                const distFromCenter = Math.sqrt(x * x + y * y);
+                z += Math.max(0, 300 - distFromCenter * 0.4);
+
+                // Add multiple peaks (Idrefjäll has several peaks)
+                z += 50 * Math.sin(x * 0.01) * Math.cos(y * 0.01);
+                z += 30 * Math.sin(x * 0.02 + 1) * Math.cos(y * 0.015);
+                z += 20 * Math.sin(x * 0.03) * Math.sin(y * 0.025);
+
+                // Add some noise for realistic terrain
+                z += 15 * Math.sin(x * 0.05) * Math.cos(y * 0.05);
+                z += 10 * Math.sin(x * 0.1) * Math.cos(y * 0.1);
+
+                vertices[i + 2] = z;
+            }
+
+            geometry.computeVertexNormals();
+
+            // Create material with slope-based coloring
+            const material = new THREE.MeshStandardMaterial({
+                vertexColors: false,
+                flatShading: false,
+                side: THREE.DoubleSide
+            });
+
+            // Add colors based on height
+            const colors = [];
+            const color = new THREE.Color();
+
+            for (let i = 0; i < vertices.length; i += 3) {
+                const z = vertices[i + 2];
+
+                // Color gradient: dark green (low) -> light green -> white (snow at top)
+                if (z < 80) {
+                    color.setStyle('#2d5016'); // Dark green (forest)
+                } else if (z < 150) {
+                    color.setStyle('#4a7c2c'); // Green
+                } else if (z < 220) {
+                    color.setStyle('#8fb570'); // Light green
+                } else if (z < 280) {
+                    color.setStyle('#d4d4d4'); // Rocky gray
+                } else {
+                    color.setStyle('#ffffff'); // Snow white
+                }
+
+                colors.push(color.r, color.g, color.b);
+            }
+
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            material.vertexColors = true;
+
+            terrain = new THREE.Mesh(geometry, material);
+            terrain.rotation.x = -Math.PI / 2;
+            terrain.receiveShadow = true;
+            scene.add(terrain);
+        }
+
+        function addSkiLifts() {
+            // Add several ski lifts
+            const liftPositions = [
+                { start: [-200, -200], end: [-100, 150] },
+                { start: [100, -250], end: [150, 200] },
+                { start: [-50, -100], end: [0, 250] },
+                { start: [200, -150], end: [180, 180] }
+            ];
+
+            liftPositions.forEach(lift => {
+                const startZ = getTerrainHeight(lift.start[0], lift.start[1]);
+                const endZ = getTerrainHeight(lift.end[0], lift.end[1]);
+
+                // Lift cable
+                const cableGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(lift.start[0], startZ + 10, lift.start[1]),
+                    new THREE.Vector3(lift.end[0], endZ + 10, lift.end[1])
+                ]);
+                const cableMaterial = new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 2 });
+                const cable = new THREE.Line(cableGeometry, cableMaterial);
+                scene.add(cable);
+
+                // Lift towers (simplified)
+                [lift.start, lift.end].forEach(pos => {
+                    const towerHeight = 20;
+                    const towerGeometry = new THREE.CylinderGeometry(1, 1, towerHeight, 8);
+                    const towerMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
+                    const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+                    tower.position.set(
+                        pos[0],
+                        getTerrainHeight(pos[0], pos[1]) + towerHeight / 2,
+                        pos[1]
+                    );
+                    tower.castShadow = true;
+                    scene.add(tower);
+                });
+            });
+        }
+
+        function addSkiRoutes() {
+            // Add ski pistes (simplified as colored paths)
+            const routes = [
+                { points: [[-150, 200], [-160, 100], [-170, 0], [-180, -100]], color: 0x0000ff, difficulty: 'blue' },
+                { points: [[0, 250], [-20, 150], [-40, 50], [-60, -50]], color: 0xff0000, difficulty: 'red' },
+                { points: [[150, 200], [130, 100], [110, 0], [90, -150]], color: 0x000000, difficulty: 'black' },
+                { points: [[-100, 150], [-80, 50], [-60, -50], [-40, -150]], color: 0x00ff00, difficulty: 'green' }
+            ];
+
+            routes.forEach(route => {
+                const points = route.points.map(p => {
+                    const z = getTerrainHeight(p[0], p[1]);
+                    return new THREE.Vector3(p[0], z + 2, p[1]);
+                });
+
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeometry = new THREE.TubeGeometry(curve, 50, 4, 8, false);
+                const tubeMaterial = new THREE.MeshStandardMaterial({
+                    color: route.color,
+                    transparent: true,
+                    opacity: 0.6,
+                    emissive: route.color,
+                    emissiveIntensity: 0.2
+                });
+                const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                scene.add(tube);
+            });
+        }
+
+        function addTrees() {
+            // Add trees to forest areas (below 150m elevation)
+            const treeCount = 300;
+
+            for (let i = 0; i < treeCount; i++) {
+                const x = (Math.random() - 0.5) * 700;
+                const y = (Math.random() - 0.5) * 700;
+                const z = getTerrainHeight(x, y);
+
+                // Only place trees in lower elevations
+                if (z < 150 && z > 20) {
+                    // Tree trunk
+                    const trunkGeometry = new THREE.CylinderGeometry(1, 1.5, 10, 6);
+                    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3428 });
+                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+
+                    // Tree foliage
+                    const foliageGeometry = new THREE.ConeGeometry(5, 15, 6);
+                    const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x1a4d1a });
+                    const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                    foliage.position.y = 12;
+
+                    const tree = new THREE.Group();
+                    tree.add(trunk);
+                    tree.add(foliage);
+                    tree.position.set(x, z + 5, y);
+                    tree.scale.setScalar(0.8 + Math.random() * 0.4);
+                    tree.castShadow = true;
+
+                    scene.add(tree);
+                }
+            }
+        }
+
+        function addLodges() {
+            // Add ski lodges/buildings
+            const lodges = [
+                { pos: [0, -300], size: 30, color: 0x8B4513, name: 'Base Lodge' },
+                { pos: [-100, 0], size: 20, color: 0xA0522D, name: 'Mid Station' },
+                { pos: [150, 150], size: 15, color: 0x8B4513, name: 'Summit Cafe' }
+            ];
+
+            lodges.forEach(lodge => {
+                const height = lodge.size * 0.4;
+                const buildingGeometry = new THREE.BoxGeometry(lodge.size, height, lodge.size * 0.7);
+                const buildingMaterial = new THREE.MeshStandardMaterial({ color: lodge.color });
+                const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+
+                const z = getTerrainHeight(lodge.pos[0], lodge.pos[1]);
+                building.position.set(lodge.pos[0], z + height / 2, lodge.pos[1]);
+                building.castShadow = true;
+                building.receiveShadow = true;
+
+                scene.add(building);
+
+                // Add roof
+                const roofGeometry = new THREE.ConeGeometry(lodge.size * 0.7, lodge.size * 0.3, 4);
+                const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(lodge.pos[0], z + height + lodge.size * 0.15, lodge.pos[1]);
+                roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
+
+                scene.add(roof);
+            });
+        }
+
+        function getTerrainHeight(x, y) {
+            // Calculate terrain height at given x, y position (same formula as in createTerrain)
+            let z = 0;
+            const distFromCenter = Math.sqrt(x * x + y * y);
+            z += Math.max(0, 300 - distFromCenter * 0.4);
+            z += 50 * Math.sin(x * 0.01) * Math.cos(y * 0.01);
+            z += 30 * Math.sin(x * 0.02 + 1) * Math.cos(y * 0.015);
+            z += 20 * Math.sin(x * 0.03) * Math.sin(y * 0.025);
+            z += 15 * Math.sin(x * 0.05) * Math.cos(y * 0.05);
+            z += 10 * Math.sin(x * 0.1) * Math.cos(y * 0.1);
+            return z;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
