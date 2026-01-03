@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idrefjäll 3D Karta</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="info">
+        <h1>Idrefjäll 3D Karta</h1>
+        <div id="stats">
+            <p><strong>Höjd:</strong> <span id="elevation">590m - 890m</span></p>
+            <p><strong>Pister:</strong> 38 nedfarter</p>
+            <p><strong>Liftar:</strong> 33 liftar</p>
+            <p><strong>Koordinater:</strong> 61.89°N, 12.83°E</p>
+        </div>
+        <div id="controls-info">
+            <p><small>🖱️ Vänster musknapp: Rotera | Höger musknapp: Panorera | Scrollhjul: Zooma</small></p>
+        </div>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Laddar terrain data...</p>
+    </div>
+
+    <div id="container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
