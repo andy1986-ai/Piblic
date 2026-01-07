@@ -6,24 +6,34 @@ En interaktiv 3D-visualisering av skidanläggningen Idrefjäll i Dalarna, Sverig
 
 ## 🎿 Funktioner
 
-- **3D Terrain**: Realistisk bergsterräng genererad med procedurell geometri
-- **Skidliftar**: 4 visualiserade liftar över berget
-- **Pister**: 4 nedfarter med färgkodning efter svårighetsgrad:
-  - 🟢 Grön (nybörjare)
-  - 🔵 Blå (lätt)
-  - 🔴 Röd (medel)
-  - ⚫ Svart (svår)
-- **Skog**: 300+ träd på lägre höjder
+- **3D Terrain**: Realistisk bergsterräng inspirerad av Idrefjälls faktiska topografi
+  - Prominent central bergsrygg (NW-SE orientering)
+  - Flera toppar inkl. Idretoppen och Södra Fjället
+  - Dalgångar och raviner för naturligt utseende
+- **Skidliftar**: 12 visualiserade liftar inkl. expresslift, stolliftar och släpliftar
+  - Automatisk tornplacering längs liftlinjer
+  - Olika typer: Express, chairlift, surface lift
+- **Pister**: 38 nedfarter med realistisk svårighetsfördelning:
+  - 🟢 Grön (nybörjare) - 39% - Breda och flacka
+  - 🔵 Blå (lätt) - 39% - Måttlig lutning
+  - 🔴 Röd (medel) - 27% - Brant terräng
+  - ⚫ Svart (svår) - 13% - Expertnivå
+- **Terrängpark (Fjällpark)**: Komplett freestyle-område med:
+  - 3 hopp (kickers) i olika storlekar
+  - Rails och boxes för tricks
+  - Avgränsning med flaggor
+- **Skog**: 300+ träd strategiskt placerade på lägre höjder
 - **Byggnader**: Baslodge, mellanstation och toppstuga
 - **Interaktiva kontroller**: Rotera, zooma och panorera med musen
 
 ## 🏔️ Om Idrefjäll
 
 **Koordinater**: 61.89°N, 12.83°E
-**Höjd**: 590m - 890m
-**Pister**: 38 nedfarter
-**Liftar**: 33 liftar
-**Totallängd**: 28 km
+**Höjd**: 585m - 892m
+**Vertikal drop**: 307m
+**Pister**: 42 nedfarter (41 km)
+**Liftar**: 33 liftar totalt
+**Säsong**: December - April
 
 Idrefjäll är en av Sveriges största skidanläggningar, belägen i Älvdalens kommun i Dalarna, nära norska gränsen.
 
@@ -64,24 +74,37 @@ php -S localhost:8000
 
 ### Terrain Generation
 
-Terrängen genereras med en kombination av:
-- Procedurell höjdgenerering baserad på avstånd från centrum
-- Sinusvågor för att skapa realistiska berg och dalar
-- Höjdbaserad färgläggning (skog → sten → snö)
+Terrängen genereras med avancerad procedurell geometri:
+- Realistisk central bergsrygg med NW-SE orientering
+- Flera distinkt definierade toppar (Idretoppen, Södra Fjället)
+- Multi-skalig sinusvåggenerering för naturligt utseende
+- Dalgångar och raviner för realism
+- 7-stegs höjdbaserad färgläggning (mörk skog → barr → alpin → klippig → snöfält → permanent snö)
 
 ### Ski Features
 
-- **Liftar**: Visualiserade med torn och kablar
-- **Pister**: Skapade med TubeGeometry längs definierade kurvor
+- **Liftar**:
+  - 12 liftar i olika kategorier (express, stolliftar, släpliftar)
+  - Automatisk tornplacering baserad på liftlängd
+  - Realistiska kablar med olika tjocklek
+- **Pister**:
+  - 38 nedfarter med TubeGeometry längs kurvade banor
+  - Breddvariation baserad på svårighetsgrad
+  - Realistisk fördelning (39% grön, 39% blå, 27% röd, 13% svart)
+- **Terrängpark**:
+  - 3 hopp med landningsmarkörer
+  - 4 rails och boxes med stödpelare
+  - Parkavgränsning med flaggor
 - **Träd**: Procedurellt placerade i skogszoner (< 150m höjd)
 - **Byggnader**: Stugor med tak på strategiska platser
 
 ### Performance
 
-- Optimerad geometri med 100x100 segment för terrain
-- Effektiv vertex-färgläggning
+- Optimerad geometri med 120x120 segment (900x900 units)
+- Effektiv vertex-färgläggning med 7 höjdzoner
 - Shadow mapping för realism
 - Fog för djup och atmosfär
+- Över 38 rendererade pister och 12 liftar med hög performance
 
 ## 🎨 Anpassning
 
@@ -125,14 +148,17 @@ camera.position.set(500, 400, 500); // x, y, z
 
 ## 🔮 Framtida förbättringar
 
-- [ ] Använd verkliga höjddata från SRTM eller liknande
-- [ ] Lägg till vädereffekter (snöfall, dimma)
-- [ ] Animera liftarna
-- [ ] Lägg till verkliga pistnamn och svårighetsgrader
-- [ ] Integrera med Mapbox för satellit-texturer
-- [ ] VR-stöd med WebXR
-- [ ] Real-time väderdataskåde från SMHI
-- [ ] Skidspår-tracking
+- [ ] Använd verkliga höjddata från SRTM eller Svenska Lantmäteriet
+- [ ] Lägg till vädereffekter (snöfall, dimma, vind)
+- [ ] Animera liftarna med rörliga stollar/gondoler
+- [ ] Lägg till verkliga pistnamn och svårighetsmarkeringar
+- [ ] Integrera med Mapbox för satellit-texturer och real topografi
+- [ ] Nattskidåkning-visualisering med belysta pister
+- [ ] VR-stöd med WebXR för immersiv upplevelse
+- [ ] Real-time väderdata från SMHI API
+- [ ] Skidspår-tracking och heatmaps
+- [ ] Snowpark tricks-simulator
+- [ ] Webcam-integration från verkliga kameror på Idrefjäll
 
 ## 📄 Licens
 
